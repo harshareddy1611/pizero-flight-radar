@@ -7,15 +7,13 @@ home:
   elevation_m: 0
 
 opensky:
-  # Anonymous access is capped around 400 requests/day - keep this interval high
-  # unless you register a free account below (raises the cap to ~4000/day).
-  poll_interval_s: 300
-  # Optional: free account at https://opensky-network.org/ lets you poll much
-  # more often (e.g. poll_interval_s: 25). Leave blank to stay anonymous.
-  username: ""
-  password: ""
+  # With a registered OpenSky account (~4000 requests/day), poll every ~25-30s.
+  # OAuth2 client_id/client_secret are NOT stored here (this file is public in
+  # git) - set them as OPENSKY_CLIENT_ID / OPENSKY_CLIENT_SECRET environment
+  # variables instead (see systemd/flight-tracker.service EnvironmentFile).
+  poll_interval_s: 30
   # Drop aircraft not heard from in this many seconds (stale/gone).
-  stale_after_s: 600
+  stale_after_s: 60
 
 display:
   # Argon POD 2.8" display (ILI9341/fb_ili9340 driver, tft9341 overlay)

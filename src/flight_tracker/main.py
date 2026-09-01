@@ -14,9 +14,10 @@ def main():
     cfg_path = sys.argv[1] if len(sys.argv) > 1 else "config.yaml"
     cfg = load_config(cfg_path)
 
-    os.environ.setdefault("SDL_VIDEODRIVER", "fbcon")
-    os.environ.setdefault("SDL_FBDEV", cfg["display"]["fbdev"])
-    os.environ.setdefault("SDL_NOMOUSE", "1")
+    # No real SDL video output is used - Renderer draws to an off-screen surface
+    # and writes raw bytes to the framebuffer device itself. "dummy" avoids SDL
+    # trying (and failing) to find a display server.
+    os.environ.setdefault("SDL_VIDEODRIVER", "dummy")
 
     pygame.init()
 
@@ -24,8 +25,8 @@ def main():
         home_lat=cfg["home"]["lat"],
         home_lon=cfg["home"]["lon"],
         range_km=cfg["radar"]["max_range_km"],
-        username=cfg["opensky"]["username"] or None,
-        password=cfg["opensky"]["password"] or None,
+        client_id=os.environ.get("OPENSKY_CLIENT_ID"),
+        client_secret=os.environ.get("OPENSKY_CLIENT_SECRET"),
     )
     tracker = Tracker(
         home_lat=cfg["home"]["lat"],
@@ -41,12 +42,7 @@ def main():
     last_poll = 0.0
     aircraft_list = []
 
-    running = True
-    while running:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                running = False
-
+    while True:
         now = time.monotonic()
         if now - last_poll >= poll_interval:
             last_poll = now
@@ -58,8 +54,6 @@ def main():
 
         renderer.draw(aircraft_list)
         time.sleep(frame_interval)
-
-    pygame.quit()
 
 
 if __name__ == "__main__":

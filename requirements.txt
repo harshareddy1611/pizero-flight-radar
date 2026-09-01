@@ -1,3 +1,6 @@
-pygame==2.5.2
+# pygame is intentionally NOT pinned here - install it via apt
+# (sudo apt-get install python3-pygame) with a --system-site-packages venv.
+# See README.md setup step 3 for why (no prebuilt wheel for this Pi's
+# Python/arch combo, and it fails to compile from source).
 requests==2.32.3
 PyYAML==6.0.2

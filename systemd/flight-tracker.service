@@ -7,6 +7,7 @@ Wants=network-online.target
 Type=simple
 User=hwm
 WorkingDirectory=/home/hwm/live_flight_tracker
+EnvironmentFile=/home/hwm/live_flight_tracker/.env
 ExecStart=/home/hwm/live_flight_tracker/.venv/bin/python -m src.flight_tracker.main config.yaml
 Restart=on-failure
 RestartSec=3
