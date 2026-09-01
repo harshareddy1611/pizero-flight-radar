@@ -5,6 +5,13 @@ A radar-scope style display of live aircraft overhead, pulled from the free
 no desktop environment, no map tiles, no SDR hardware needed. Just the Pi and
 a display.
 
+## Gallery
+
+| | |
+|---|---|
+| ![Radar, wide zoom](images/display-radar-wide.jpg) | ![Radar, zoomed in](images/display-radar-zoomed.jpg) |
+| ![Pi Zero W mounted in the Argon POD case](images/pi-zero-in-case.jpg) | ![Display and Pi Zero W side by side](images/hardware-side-by-side-1.jpg) |
+
 ## How it works
 
 1. `src/flight_tracker/opensky_client.py` authenticates with OpenSky Network's
