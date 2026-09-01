@@ -4,6 +4,7 @@ import time
 
 import pygame
 
+from .buttons import ButtonWatcher
 from .config import load_config
 from .opensky_client import OpenSkyClient
 from .tracker import Tracker
@@ -14,12 +15,12 @@ def main():
     cfg_path = sys.argv[1] if len(sys.argv) > 1 else "config.yaml"
     cfg = load_config(cfg_path)
 
-    # No real SDL video output is used - Renderer draws to an off-screen surface
-    # and writes raw bytes to the framebuffer device itself. "dummy" avoids SDL
-    # trying (and failing) to find a display server.
-    os.environ.setdefault("SDL_VIDEODRIVER", "dummy")
-
-    pygame.init()
+    # No real SDL video/audio output is used - Renderer draws to an off-screen
+    # surface and writes raw bytes to the framebuffer device itself, and we
+    # never play sound. Only initialize the font subsystem (pygame.init() also
+    # brings up SDL audio, which spams ALSA underrun warnings on this hardware
+    # for no reason since nothing ever plays).
+    pygame.font.init()
 
     client = OpenSkyClient(
         home_lat=cfg["home"]["lat"],
@@ -36,6 +37,12 @@ def main():
     )
     renderer = Renderer(cfg)
 
+    try:
+        buttons = ButtonWatcher()
+    except Exception as exc:
+        print(f"Button GPIO unavailable, physical buttons disabled: {exc}", file=sys.stderr)
+        buttons = None
+
     poll_interval = cfg["opensky"]["poll_interval_s"]
     frame_interval = 1.0 / cfg["display"]["fps"]
 
@@ -43,8 +50,23 @@ def main():
     aircraft_list = []
 
     while True:
+        force_poll = False
+        if buttons is not None:
+            for button in buttons.poll_events():
+                if button == "A":
+                    renderer.zoom_in()
+                elif button == "B":
+                    renderer.zoom_out()
+                elif button == "C":
+                    force_poll = True
+                elif button == "D":
+                    renderer.toggle_labels()
+                if button in ("A", "B"):
+                    client.range_km = renderer.max_range_km
+                    force_poll = True
+
         now = time.monotonic()
-        if now - last_poll >= poll_interval:
+        if force_poll or now - last_poll >= poll_interval:
             last_poll = now
             try:
                 raw = client.fetch_aircraft()

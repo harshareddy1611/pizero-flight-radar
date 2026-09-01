@@ -23,6 +23,9 @@ SWEEP_TAIL_STEPS = 10
 SWEEP_TAIL_SPREAD_DEG = 26
 SWEEP_PERIOD_S = 6.0
 
+RANGE_PRESETS_KM = [15, 30, 60, 100, 150]
+RING_RATIOS = (0.25, 0.5, 0.75, 1.0)
+
 
 def _lerp_color(c1, c2, t):
     return tuple(int(a + (b - a) * t) for a, b in zip(c1, c2))
@@ -36,15 +39,21 @@ class Renderer:
         self.width = display_cfg["width"]
         self.height = display_cfg["height"]
         self.rotate_deg = display_cfg.get("rotate_degrees", 0)
-        self.max_range_km = radar_cfg["max_range_km"]
-        self.range_rings = radar_cfg["range_rings"]
         self.show_callsign = radar_cfg["show_callsign"]
         self.show_altitude = radar_cfg["show_altitude"]
 
         self.center_x = self.width // 2
         self.center_y = self.height // 2
         self.screen_radius_px = min(self.center_x, self.center_y) - 14
+
+        configured_range = radar_cfg["max_range_km"]
+        self._range_idx = min(
+            range(len(RANGE_PRESETS_KM)),
+            key=lambda i: abs(RANGE_PRESETS_KM[i] - configured_range),
+        )
+        self.max_range_km = RANGE_PRESETS_KM[self._range_idx]
         self.km_per_px = self.max_range_km / self.screen_radius_px
+        self.range_rings = [round(self.max_range_km * r) for r in RING_RATIOS]
 
         # The SPI display's /dev/fb1 is a plain Linux framebuffer (RGB565), not a
         # DRM/KMS device - modern SDL2 dropped fbdev support, so we can't use
@@ -60,6 +69,24 @@ class Renderer:
 
         self.background = pygame.Surface(*surface_args)
         self._render_background()
+
+    def _set_range_index(self, new_idx):
+        self._range_idx = max(0, min(len(RANGE_PRESETS_KM) - 1, new_idx))
+        self.max_range_km = RANGE_PRESETS_KM[self._range_idx]
+        self.km_per_px = self.max_range_km / self.screen_radius_px
+        self.range_rings = [round(self.max_range_km * r) for r in RING_RATIOS]
+        self._render_background()
+
+    def zoom_in(self):
+        self._set_range_index(self._range_idx - 1)
+
+    def zoom_out(self):
+        self._set_range_index(self._range_idx + 1)
+
+    def toggle_labels(self):
+        showing = self.show_callsign or self.show_altitude
+        self.show_callsign = not showing
+        self.show_altitude = not showing
 
     def _to_screen(self, distance_km, bearing_deg):
         return geo.polar_to_screen(
