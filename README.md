@@ -7,6 +7,8 @@ a display.
 
 ## Gallery
 
+![Radar in action](images/radar-in-action.gif)
+
 | | |
 |---|---|
 | ![Radar, wide zoom](images/display-radar-wide.jpg) | ![Radar, zoomed in](images/display-radar-zoomed.jpg) |
