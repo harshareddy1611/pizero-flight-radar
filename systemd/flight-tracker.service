@@ -1,0 +1,15 @@
+[Unit]
+Description=Live Flight Tracker radar display
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=hwm
+WorkingDirectory=/home/hwm/live_flight_tracker
+ExecStart=/home/hwm/live_flight_tracker/.venv/bin/python -m src.flight_tracker.main config.yaml
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
