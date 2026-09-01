@@ -7,11 +7,19 @@ home:
   elevation_m: 0
 
 opensky:
-  # With a registered OpenSky account (~4000 requests/day), poll every ~25-30s.
   # OAuth2 client_id/client_secret are NOT stored here (this file is public in
   # git) - set them as OPENSKY_CLIENT_ID / OPENSKY_CLIENT_SECRET environment
   # variables instead (see systemd/flight-tracker.service EnvironmentFile).
-  poll_interval_s: 30
+  #
+  # A registered account gets ~4000 request-credits/day, and each poll here
+  # costs 1 credit (bounding box stays small enough at every zoom level).
+  # Poll faster during hours you're actually watching, slower otherwise -
+  # budgeted to land safely under the daily quota. Uses the Pi's local time.
+  schedule:
+    day_start_hour: 10
+    day_end_hour: 19
+    day_poll_interval_s: 11
+    night_poll_interval_s: 54
   # Drop aircraft not heard from in this many seconds (stale/gone).
   stale_after_s: 60
 
@@ -24,9 +32,8 @@ display:
   rotate_degrees: 0   # overlay already applies rotate=270; leave at 0 unless the UI looks sideways
 
 radar:
+  # Starting zoom - snaps to the nearest of the built-in presets (15/30/60/100/150km),
+  # cycled at runtime with the A/B buttons. Range rings are derived automatically.
   max_range_km: 60
-  range_rings: [15, 30, 45, 60]
-  show_callsign: true
-  show_altitude: true
   # Keep a short fading trail behind each aircraft
   trail_length: 8

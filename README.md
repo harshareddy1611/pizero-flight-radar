@@ -73,10 +73,14 @@ pygame's MIDI bindings incompatibility). Use the apt-packaged pygame instead
 of building it:
 
 ```bash
-sudo apt-get install -y python3-pygame
+sudo apt-get install -y python3-pygame python3-libgpiod
 python3 -m venv --system-site-packages .venv
 .venv/bin/pip install requests==2.32.3 PyYAML==6.0.2
 ```
+
+(`python3-libgpiod` is used by `buttons.py` for the Argon POD's 4 physical
+buttons - it's usually already installed as a side effect of step 2's Argon
+setup, but the explicit install above is harmless if so.)
 
 ### 4. OpenSky credentials
 
@@ -101,6 +105,18 @@ With registered access (~4000 requests/day) you can poll roughly every 25-30s.
 Edit `config.yaml` → `home.lat` / `home.lon` to your coordinates (this is the
 center of the radar and how distance/bearing to aircraft are computed).
 
+## Controls
+
+The Argon POD's 4 buttons (read directly via GPIO, not Argon's own daemon -
+see `buttons.py`):
+
+| Button | Action |
+|---|---|
+| A | Zoom in (smaller range) |
+| B | Zoom out (larger range) |
+| C | Force an immediate data refresh |
+| D | Switch aircraft labels between basic (callsign/altitude) and metadata (aircraft type/route) |
+
 ## Running
 
 Manually, for testing:
@@ -117,6 +133,10 @@ sudo cp systemd/flight-tracker.service /etc/systemd/system/
 sudo systemctl daemon-reload
 sudo systemctl enable --now flight-tracker.service
 sudo journalctl -u flight-tracker.service -f   # logs
+
+# The console (tty1) maps to the same framebuffer as the display and will
+# fight the app for it on every boot unless disabled:
+sudo systemctl disable getty@tty1.service
 ```
 
 ## Troubleshooting

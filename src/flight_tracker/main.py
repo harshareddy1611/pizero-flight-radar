@@ -1,14 +1,23 @@
+import datetime
 import os
 import sys
 import time
 
 import pygame
 
+from .aircraft_info import AircraftInfoLookup
 from .buttons import ButtonWatcher
 from .config import load_config
 from .opensky_client import OpenSkyClient
 from .tracker import Tracker
 from .renderer import Renderer
+
+
+def current_poll_interval(schedule_cfg):
+    hour = datetime.datetime.now().hour
+    if schedule_cfg["day_start_hour"] <= hour < schedule_cfg["day_end_hour"]:
+        return schedule_cfg["day_poll_interval_s"]
+    return schedule_cfg["night_poll_interval_s"]
 
 
 def main():
@@ -36,6 +45,7 @@ def main():
         trail_length=cfg["radar"]["trail_length"],
     )
     renderer = Renderer(cfg)
+    info_lookup = AircraftInfoLookup()
 
     try:
         buttons = ButtonWatcher()
@@ -43,7 +53,7 @@ def main():
         print(f"Button GPIO unavailable, physical buttons disabled: {exc}", file=sys.stderr)
         buttons = None
 
-    poll_interval = cfg["opensky"]["poll_interval_s"]
+    schedule_cfg = cfg["opensky"]["schedule"]
     frame_interval = 1.0 / cfg["display"]["fps"]
 
     last_poll = 0.0
@@ -60,17 +70,21 @@ def main():
                 elif button == "C":
                     force_poll = True
                 elif button == "D":
-                    renderer.toggle_labels()
+                    renderer.cycle_label_mode()
                 if button in ("A", "B"):
                     client.range_km = renderer.max_range_km
                     force_poll = True
 
         now = time.monotonic()
-        if force_poll or now - last_poll >= poll_interval:
+        if force_poll or now - last_poll >= current_poll_interval(schedule_cfg):
             last_poll = now
             try:
                 raw = client.fetch_aircraft()
                 aircraft_list = tracker.update(raw)
+                for entry in aircraft_list:
+                    if not entry.info_requested:
+                        entry.info_requested = True
+                        info_lookup.request(entry)
             except Exception as exc:
                 print(f"OpenSky fetch failed: {exc}", file=sys.stderr)
 

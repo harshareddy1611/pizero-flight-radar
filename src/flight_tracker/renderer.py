@@ -39,8 +39,7 @@ class Renderer:
         self.width = display_cfg["width"]
         self.height = display_cfg["height"]
         self.rotate_deg = display_cfg.get("rotate_degrees", 0)
-        self.show_callsign = radar_cfg["show_callsign"]
-        self.show_altitude = radar_cfg["show_altitude"]
+        self.label_mode = "basic"  # "basic" (callsign/altitude) or "detail" (type/route)
 
         self.center_x = self.width // 2
         self.center_y = self.height // 2
@@ -83,10 +82,8 @@ class Renderer:
     def zoom_out(self):
         self._set_range_index(self._range_idx + 1)
 
-    def toggle_labels(self):
-        showing = self.show_callsign or self.show_altitude
-        self.show_callsign = not showing
-        self.show_altitude = not showing
+    def cycle_label_mode(self):
+        self.label_mode = "detail" if self.label_mode == "basic" else "basic"
 
     def _to_screen(self, distance_km, bearing_deg):
         return geo.polar_to_screen(
@@ -169,13 +166,25 @@ class Renderer:
         pygame.draw.polygon(self.screen, PLANE_COLOR, core_shape)
         pygame.draw.polygon(self.screen, PLANE_OUTLINE_COLOR, core_shape, 1)
 
-        label_parts = []
-        if self.show_callsign and entry.flight:
-            label_parts.append(entry.flight.strip())
-        if self.show_altitude and entry.alt_baro is not None:
-            label_parts.append(f"{entry.alt_baro // 100}FL")
-        if label_parts:
-            self._blit_label(self.screen, " ".join(label_parts), (x + 8, y - 6), self.font, LABEL_COLOR)
+        line1 = []
+        line2 = []
+        if self.label_mode == "basic":
+            if entry.flight:
+                line1.append(entry.flight.strip())
+            if entry.alt_baro is not None:
+                line2.append(f"FL{entry.alt_baro // 100}")
+        else:
+            line1.append(entry.aircraft_type or (entry.flight or "").strip())
+            if entry.route:
+                line2.append(entry.route.replace("-", ">"))
+            line1 = [p for p in line1 if p]
+
+        label_y = y - 6
+        if line1:
+            self._blit_label(self.screen, " ".join(line1), (x + 8, label_y), self.font, LABEL_COLOR)
+            label_y += 12
+        if line2:
+            self._blit_label(self.screen, " ".join(line2), (x + 8, label_y), self.font, LABEL_COLOR)
 
     def draw(self, aircraft_list):
         self.screen.blit(self.background, (0, 0))

@@ -15,6 +15,14 @@ class TrackedAircraft:
         self.last_seen = time.monotonic()
         self.trail = deque(maxlen=trail_length)
 
+        # Best-effort enrichment from AircraftInfoLookup (aircraft_info.py).
+        # Requested once per sighting (info_requested), not re-tried even on a
+        # cache miss, to avoid re-queueing the same lookup every poll cycle.
+        self.aircraft_type = None
+        self.operator = None
+        self.route = None
+        self.info_requested = False
+
 
 class Tracker:
     def __init__(self, home_lat, home_lon, stale_after_s, trail_length):
