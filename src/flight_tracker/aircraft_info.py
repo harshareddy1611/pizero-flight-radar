@@ -5,6 +5,7 @@ import requests
 
 AIRCRAFT_URL = "https://hexdb.io/api/v1/aircraft/{hex_id}"
 ROUTE_URL = "https://hexdb.io/api/v1/route/icao/{callsign}"
+AIRPORT_URL = "https://hexdb.io/api/v1/airport/icao/{icao}"
 
 
 class AircraftInfoLookup:
@@ -19,6 +20,7 @@ class AircraftInfoLookup:
         self._timeout_s = timeout_s
         self._aircraft_cache = {}
         self._route_cache = {}
+        self._airport_cache = {}
         self._queue = queue.Queue()
         self._thread = threading.Thread(target=self._worker, daemon=True)
         self._thread.start()
@@ -51,7 +53,15 @@ class AircraftInfoLookup:
             self._route_cache[callsign] = self._fetch(ROUTE_URL.format(callsign=callsign))
         data = self._route_cache[callsign]
         if data and "route" in data:
-            entry.route = data["route"]
+            entry.route = "-".join(self._to_iata(icao) for icao in data["route"].split("-"))
+
+    def _to_iata(self, icao):
+        if icao not in self._airport_cache:
+            self._airport_cache[icao] = self._fetch(AIRPORT_URL.format(icao=icao))
+        data = self._airport_cache[icao]
+        if data and data.get("iata"):
+            return data["iata"]
+        return icao
 
     def _fetch(self, url):
         try:
